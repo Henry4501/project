@@ -48,14 +48,18 @@ export default function LinkCard({ link, onUpdated, onDeleted, onEdit }) {
             target="_blank"
             // rel prevents the new tab from accessing window.opener (security).
             rel="noopener noreferrer"
-            className="flex items-center gap-1 font-medium hover:underline truncate"
+            className="flex items-center gap-1 font-medium hover:underline min-w-0"
           >
-            {link.title || link.url}
+            {/* truncate goes on the text span, not the flex <a>: text-overflow
+                only clips block text, so a flex container won't ellipsize. */}
+            <span className="truncate">{link.title || link.url}</span>
             <ArrowSquareOutIcon size={14} className="shrink-0" />
           </a>
           <p className="text-sm text-muted-foreground truncate">{link.url}</p>
           {link.notes && (
-            <p className="mt-1 text-sm text-muted-foreground">{link.notes}</p>
+            <p className="mt-1 text-sm text-muted-foreground break-words">
+              {link.notes}
+            </p>
           )}
           {link.tags?.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
