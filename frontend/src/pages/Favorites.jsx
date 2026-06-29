@@ -4,10 +4,10 @@ import Layout from "@/components/Layout";
 import LinkCard from "@/components/LinkCard";
 import LinkForm from "@/components/LinkForm";
 import { apiRequest } from "@/lib/api";
+import { useCollections } from "@/context/CollectionsContext";
 
 const initialState = {
   links: [],
-  collections: [],
   linkFormOpen: false,
   editLink: null,
 };
@@ -15,8 +15,10 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     case "SET_DATA":
-      return { ...state, links: action.links, collections: action.collections };
+      return { ...state, links: action.links };
     case "UPDATE_LINK":
+      // On this page, un-favoriting should drop the link from view; otherwise
+      // just update it in place.
       return {
         ...state,
         links: action.payload.favorite
@@ -41,16 +43,15 @@ function reducer(state, action) {
 
 export default function Favorites() {
   const { getToken } = useAuth();
+  const { collections } = useCollections();
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     const fetchData = async () => {
       const token = await getToken();
-      const [links, collections] = await Promise.all([
-        apiRequest("/api/links?favorite=true", token),
-        apiRequest("/api/collections", token),
-      ]);
-      dispatch({ type: "SET_DATA", links, collections });
+      // The ?favorite=true query tells the API to return only favorites.
+      const links = await apiRequest("/api/links?favorite=true", token);
+      dispatch({ type: "SET_DATA", links });
     };
     fetchData();
   }, []);
@@ -84,7 +85,7 @@ export default function Favorites() {
         onCreated={() => {}}
         onUpdated={(link) => dispatch({ type: "UPDATE_LINK", payload: link })}
         editLink={state.editLink}
-        collections={state.collections}
+        collections={collections}
       />
     </Layout>
   );

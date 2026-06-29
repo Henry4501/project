@@ -1,4 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
+
+// Phosphor icons. Import name is the icon plus the "Icon" suffix.
+// Docs: https://github.com/phosphor-icons/react
 import {
   SquaresFourIcon,
   LinkIcon,
@@ -7,7 +10,13 @@ import {
   PlusIcon,
   TagIcon,
 } from "@phosphor-icons/react";
+
+// UserButton renders the signed-in user's avatar with a sign-out menu.
+// Docs: https://clerk.com/docs/components/user/user-button
 import { UserButton } from "@clerk/react";
+
+// shadcn's composable sidebar primitives.
+// Docs: https://ui.shadcn.com/docs/components/sidebar
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +31,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+// Static nav config. Keeping it as data (not repeated JSX) means one map call
+// renders all items and adding a link is a one-line change.
 const navItems = [
   { label: "Dashboard", icon: SquaresFourIcon, to: "/" },
   { label: "All Links", icon: LinkIcon, to: "/links" },
@@ -30,6 +41,8 @@ const navItems = [
 ];
 
 export default function AppSidebar({ collections = [], onAddCollection }) {
+  // useLocation gives the current URL so we can highlight the active link.
+  // Docs: https://reactrouter.com/start/declarative/routing
   const { pathname } = useLocation();
 
   return (
@@ -44,6 +57,8 @@ export default function AppSidebar({ collections = [], onAddCollection }) {
             <SidebarMenu>
               {navItems.map(({ label, icon: Icon, to }) => (
                 <SidebarMenuItem key={to}>
+                  {/* asChild lets the shadcn button render our Router <Link>
+                      instead of its own element, so we get SPA navigation. */}
                   <SidebarMenuButton asChild isActive={pathname === to}>
                     <Link to={to}>
                       <Icon size={18} />
@@ -58,11 +73,13 @@ export default function AppSidebar({ collections = [], onAddCollection }) {
 
         <SidebarGroup>
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
+          {/* The + action opens the create-collection dialog (handled by Layout). */}
           <SidebarMenuAction onClick={onAddCollection} title="New Collection">
             <PlusIcon size={16} />
           </SidebarMenuAction>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Collections come from the backend and are passed in as a prop. */}
               {collections.map((col) => (
                 <SidebarMenuItem key={col.id}>
                   <SidebarMenuButton

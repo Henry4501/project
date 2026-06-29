@@ -1,5 +1,8 @@
 import { useReducer } from "react";
 import { useAuth } from "@clerk/react";
+
+// shadcn Dialog: an accessible modal built on Radix.
+// Docs: https://ui.shadcn.com/docs/components/dialog
 import {
   Dialog,
   DialogContent,
@@ -26,15 +29,19 @@ function reducer(state, action) {
   }
 }
 
+// Props: open/onOpenChange control visibility (owned by Layout); onCreated
+// reports the new collection back up so the sidebar updates.
 export default function CollectionForm({ open, onOpenChange, onCreated }) {
   const { getToken } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const handleSubmit = async () => {
+    // Guard against empty submissions.
     if (!state.name.trim()) return;
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const token = await getToken();
+      // POST creates a new resource on the server.
       const collection = await apiRequest("/api/collections", token, {
         method: "POST",
         body: JSON.stringify({ name: state.name }),
@@ -45,6 +52,7 @@ export default function CollectionForm({ open, onOpenChange, onCreated }) {
     } catch (err) {
       console.error(err);
     } finally {
+      // finally runs whether or not it succeeded, so the button never gets stuck.
       dispatch({ type: "SET_LOADING", payload: false });
     }
   };
@@ -61,6 +69,7 @@ export default function CollectionForm({ open, onOpenChange, onCreated }) {
           onChange={(e) =>
             dispatch({ type: "SET_NAME", payload: e.target.value })
           }
+          // Submit on Enter for convenience.
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
         />
         <DialogFooter>

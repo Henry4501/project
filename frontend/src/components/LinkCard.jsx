@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/react";
 import { apiRequest } from "@/lib/api";
 
+// Displays one link. The parent passes callbacks (onUpdated/onDeleted/onEdit)
+// so this card stays "dumb" about where the list lives. This is "lifting state
+// up": the card reports events, the parent owns the data.
+// Docs: https://react.dev/learn/sharing-state-between-components
 export default function LinkCard({ link, onUpdated, onDeleted, onEdit }) {
   const { getToken } = useAuth();
 
   const toggleFavorite = async () => {
     const token = await getToken();
+    // PATCH updates only the fields we send (here, just favorite).
     const updated = await apiRequest(`/api/links/${link.id}`, token, {
       method: "PATCH",
       body: JSON.stringify({ favorite: !link.favorite }),
@@ -41,6 +46,7 @@ export default function LinkCard({ link, onUpdated, onDeleted, onEdit }) {
           <a
             href={link.url}
             target="_blank"
+            // rel prevents the new tab from accessing window.opener (security).
             rel="noopener noreferrer"
             className="flex items-center gap-1 font-medium hover:underline truncate"
           >
@@ -65,6 +71,7 @@ export default function LinkCard({ link, onUpdated, onDeleted, onEdit }) {
 
       <div className="flex shrink-0 items-center gap-1 ml-2">
         <Button size="icon" variant="ghost" onClick={toggleFavorite}>
+          {/* Phosphor's weight prop swaps the outline icon for a filled one. */}
           <HeartIcon
             size={18}
             weight={link.favorite ? "fill" : "regular"}

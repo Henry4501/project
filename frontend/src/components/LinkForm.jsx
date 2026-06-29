@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+// shadcn Select (built on Radix), used for the collection picker.
+// Docs: https://ui.shadcn.com/docs/components/select
 import {
   Select,
   SelectContent,
@@ -18,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api";
 
+// One dialog handles BOTH create and edit. When editLink is provided we're
+// editing; otherwise we're creating. This avoids duplicating a near-identical form.
 const initialState = {
   url: "",
   notes: "",
@@ -28,6 +33,8 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    // A single generic field setter keeps the reducer small (action.field names
+    // which key to update).
     case "SET_FIELD":
       return { ...state, [action.field]: action.payload };
     case "SET_FORM":
@@ -52,6 +59,8 @@ export default function LinkForm({
   const { getToken } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // When the dialog opens, pre-fill the form if editing, or clear it if creating.
+  // Runs whenever editLink or open changes.
   useEffect(() => {
     if (editLink) {
       dispatch({
@@ -60,6 +69,7 @@ export default function LinkForm({
           url: editLink.url,
           notes: editLink.notes || "",
           collectionId: editLink.collectionId || "",
+          // The API stores tags as objects; the form edits them as a CSV string.
           tags: editLink.tags?.map((t) => t.name).join(", ") || "",
         },
       });
@@ -68,6 +78,7 @@ export default function LinkForm({
     }
   }, [editLink, open]);
 
+  // Returns an onChange handler bound to a specific field name.
   const setField = (field) => (e) =>
     dispatch({ type: "SET_FIELD", field, payload: e.target.value });
 
@@ -80,6 +91,7 @@ export default function LinkForm({
         url: state.url,
         notes: state.notes,
         collectionId: state.collectionId || null,
+        // Turn the CSV string back into a clean array of tag names.
         tags: state.tags
           .split(",")
           .map((t) => t.trim())
@@ -87,12 +99,14 @@ export default function LinkForm({
       };
 
       if (editLink) {
+        // PATCH for an existing link.
         const updated = await apiRequest(`/api/links/${editLink.id}`, token, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
         onUpdated(updated);
       } else {
+        // POST for a new link.
         const created = await apiRequest("/api/links", token, {
           method: "POST",
           body: JSON.stringify(payload),
@@ -130,6 +144,7 @@ export default function LinkForm({
             value={state.tags}
             onChange={setField("tags")}
           />
+          {/* Select's value/onValueChange are controlled by our reducer state. */}
           <Select
             value={state.collectionId}
             onValueChange={(value) =>

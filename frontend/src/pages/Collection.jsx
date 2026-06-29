@@ -1,4 +1,7 @@
 import { useReducer, useEffect } from "react";
+
+// useParams reads dynamic segments from the URL (the :id in /collections/:id).
+// Docs: https://reactrouter.com/start/declarative/routing
 import { useParams } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import Layout from "@/components/Layout";
@@ -6,11 +9,10 @@ import LinkCard from "@/components/LinkCard";
 import LinkForm from "@/components/LinkForm";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api";
+import { useCollections } from "@/context/CollectionsContext";
 
 const initialState = {
   links: [],
-  collections: [],
-  collection: null,
   linkFormOpen: false,
   editLink: null,
 };
@@ -18,12 +20,7 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     case "SET_DATA":
-      return {
-        ...state,
-        links: action.links,
-        collections: action.collections,
-        collection: action.collection,
-      };
+      return { ...state, links: action.links };
     case "ADD_LINK":
       return { ...state, links: [action.payload, ...state.links] };
     case "UPDATE_LINK":
@@ -50,30 +47,30 @@ function reducer(state, action) {
 export default function Collection() {
   const { id } = useParams();
   const { getToken } = useAuth();
+  const { collections } = useCollections();
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // This collection's record (for the heading) is derived from the shared list,
+  // so it stays correct without its own fetch or state.
+  const collection = collections.find((c) => c.id === id) || null;
 
   useEffect(() => {
     const fetchData = async () => {
       const token = await getToken();
-      const [links, collections] = await Promise.all([
-        apiRequest(`/api/links?collectionId=${id}`, token),
-        apiRequest("/api/collections", token),
-      ]);
-      dispatch({
-        type: "SET_DATA",
-        links,
-        collections,
-        collection: collections.find((c) => c.id === id) || null,
-      });
+      // ?collectionId filters links to just this collection.
+      const links = await apiRequest(`/api/links?collectionId=${id}`, token);
+      dispatch({ type: "SET_DATA", links });
     };
     fetchData();
+    // Re-run when id changes, so navigating between collections refetches.
   }, [id]);
 
   return (
     <Layout>
       <div className="flex items-center justify-between">
+        {/* ?? falls back to "Collection" until the name has loaded. */}
         <h1 className="text-2xl font-semibold">
-          {state.collection?.name ?? "Collection"}
+          {collection?.name ?? "Collection"}
         </h1>
         <Button onClick={() => dispatch({ type: "OPEN_FORM" })}>
           Add Link
@@ -107,7 +104,7 @@ export default function Collection() {
         onCreated={(link) => dispatch({ type: "ADD_LINK", payload: link })}
         onUpdated={(link) => dispatch({ type: "UPDATE_LINK", payload: link })}
         editLink={state.editLink}
-        collections={state.collections}
+        collections={collections}
       />
     </Layout>
   );

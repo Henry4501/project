@@ -7,10 +7,13 @@ import LinkCard from "@/components/LinkCard";
 import LinkForm from "@/components/LinkForm";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api";
+import { useCollections } from "@/context/CollectionsContext";
 
+// All list-page state (data, dialog open/closed, which link is being edited)
+// lives in one reducer. The same shape repeats across the list pages below.
+// Collections come from shared context, not this reducer.
 const initialState = {
   links: [],
-  collections: [],
   linkFormOpen: false,
   editLink: null,
 };
@@ -18,10 +21,11 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     case "SET_DATA":
-      return { ...state, links: action.links, collections: action.collections };
+      return { ...state, links: action.links };
     case "ADD_LINK":
       return { ...state, links: [action.payload, ...state.links] };
     case "UPDATE_LINK":
+      // Replace the one matching link, leave the rest untouched (immutably).
       return {
         ...state,
         links: state.links.map((l) =>
@@ -34,6 +38,7 @@ function reducer(state, action) {
         links: state.links.filter((l) => l.id !== action.payload),
       };
     case "OPEN_FORM":
+      // payload is the link to edit, or undefined to open a blank "add" form.
       return { ...state, linkFormOpen: true, editLink: action.payload || null };
     case "CLOSE_FORM":
       return { ...state, linkFormOpen: false, editLink: null };
@@ -44,20 +49,20 @@ function reducer(state, action) {
 
 export default function Dashboard() {
   const { getToken } = useAuth();
+  const { collections } = useCollections();
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     const fetchData = async () => {
       const token = await getToken();
-      const [links, collections] = await Promise.all([
-        apiRequest("/api/links", token),
-        apiRequest("/api/collections", token),
-      ]);
-      dispatch({ type: "SET_DATA", links, collections });
+      const links = await apiRequest("/api/links", token);
+      dispatch({ type: "SET_DATA", links });
     };
     fetchData();
   }, []);
 
+  // Derived values: computed from state during render, so they don't need their
+  // own state and can never go out of sync.
   const recent = state.links.slice(0, 5);
   const stats = [
     {
@@ -74,7 +79,7 @@ export default function Dashboard() {
     },
     {
       label: "Collections",
-      value: state.collections.length,
+      value: collections.length,
       icon: FolderIcon,
       to: null,
     },
@@ -139,7 +144,7 @@ export default function Dashboard() {
         onCreated={(link) => dispatch({ type: "ADD_LINK", payload: link })}
         onUpdated={(link) => dispatch({ type: "UPDATE_LINK", payload: link })}
         editLink={state.editLink}
-        collections={state.collections}
+        collections={collections}
       />
     </Layout>
   );
